@@ -7,8 +7,8 @@ import (
 )
 
 func main() {
-	token := "" // положи токен в переменную окружения BOT_TOKEN
-	if token == "8303723414:AAHN3_C5U8vtKOour2A0H8QJL6Ck0Vnmbxk" {
+	token := "8303723414:AAHN3_C5U8vtKOour2A0H8QJL6Ck0Vnmbxk" // положи токен в переменную окружения BOT_TOKEN
+	if token == "" {
 		log.Fatal("BOT_TOKEN is empty. Set it like: export BOT_TOKEN='123:ABC'")
 	}
 
@@ -26,14 +26,13 @@ func main() {
 		// 1) Команды/сообщения
 		if update.Message != nil {
 			if update.Message.IsCommand() && update.Message.Command() == "start" {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Выбери кнопку 👇")
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Авторизация")
 
-				// 3 кнопки в один ряд (inline keyboard)
+				// 2 кнопки в один ряд (inline keyboard)
 				keyboard := tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("Кнопка 1", "btn_1"),
-						tgbotapi.NewInlineKeyboardButtonData("Кнопка 2", "btn_2"),
-						tgbotapi.NewInlineKeyboardButtonData("Кнопка 3", "btn_3"),
+						tgbotapi.NewInlineKeyboardButtonData("Зарегистрироваться", "reg"),
+						tgbotapi.NewInlineKeyboardButtonData("Войти", "sign_in"),
 					),
 				)
 
@@ -51,12 +50,10 @@ func main() {
 
 			var text string
 			switch data {
-			case "btn_1":
-				text = "Ты нажал: Кнопка 1"
-			case "btn_2":
-				text = "Ты нажал: Кнопка 2"
-			case "btn_3":
-				text = "Ты нажал: Кнопка 3"
+			case "reg":
+				text = "Эта функция пока не доступна"
+			case "sign_in":
+				text = "Эта функция пока не доступна"
 			default:
 				text = "Неизвестная кнопка"
 			}

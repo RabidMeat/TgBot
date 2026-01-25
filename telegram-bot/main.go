@@ -8,14 +8,12 @@ import (
 )
 
 func main() {
-	// Токен бота из переменной окружения
 
-	token := "8303723414:AAHN3_C5U8vtKOour2A0H8QJL6Ck0Vnmbxk" // положи токен в переменную окружения BOT_TOKEN
+	token := "8303723414:AAHN3_C5U8vtKOour2A0H8QJL6Ck0Vnmbxk"
 	if token == "" {
 		log.Fatal("BOT_TOKEN is empty. Set it like: export BOT_TOKEN='123:ABC'")
 	}
 
-	// Строка подключения к PostgreSQL
 	dbConn := os.Getenv("postgres://postgres:Bkmz_2009@localhost:5432/TGbot?sslmode=disable")
 	if dbConn == "" {
 		dbConn = "postgres://postgres:Bkmz_2009@localhost:5432/TGbot?sslmode=disable"
@@ -37,14 +35,13 @@ func main() {
 		if update.Message != nil {
 			command := update.Message.Command()
 
-			// Обрабатываем команды
 			if update.Message.IsCommand() {
-				if command == "start" || command == "menu" {
+				if command == "start" {
 					handleStart(bot, update)
 				} else if command == "clear" {
 					handleClear(bot, update)
 				} else if command == "accdelete" {
-					handleAccDelete(bot, update) // Новая команда!
+					handleAccDelete(bot, update)
 				}
 			} else {
 				handleMessage(bot, update)

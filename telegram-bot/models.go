@@ -1,17 +1,14 @@
 package main
 
 type User struct {
-	ID         int    `json:"id"`
-	Username   string `json:"username"`
-	Password   string `json:"password"` // В продакшене используйте хэширование!
-	TelegramID int64  `json:"telegram_id"`
+	ID         int
+	Username   string
+	Password   string
+	TelegramID int64
 }
 
 type UserState struct {
-	TelegramID int64  `json:"telegram_id"`
-	State      string `json:"state"`
-	Data       string `json:"data"` // временные данные (имя пользователя)
+	TelegramID int64
+	State      string
+	Data       string
 }
-
-// In-memory хранилище состояний (если не используете БД для состояний)
-var userStates = make(map[int64]UserState)

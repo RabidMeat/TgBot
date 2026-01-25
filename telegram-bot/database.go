@@ -9,7 +9,22 @@ import (
 )
 
 var db *sql.DB
+var userStates map[int64]UserState
+var userClasses map[int64]string // ← Только здесь!
 
+func init() {
+	userStates = make(map[int64]UserState)
+	userClasses = make(map[int64]string)
+}
+
+func SaveUserClass(telegramID int64, class string) {
+	userClasses[telegramID] = class
+}
+
+func GetUserClass(telegramID int64) (string, bool) {
+	class, exists := userClasses[telegramID]
+	return class, exists
+}
 func InitDB(connStr string) {
 	var err error
 	db, err = sql.Open("postgres", connStr)

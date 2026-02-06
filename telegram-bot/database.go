@@ -48,16 +48,15 @@ func SaveUserState(telegramID int64, state, data string) {
 		Data:       data,
 	}
 }
-func GetUserState(telegramID int64) (string, string, error) {
-	if stateData, exists := userStates[telegramID]; exists {
-		return stateData.State, stateData.Data, nil
-	}
-	return "", "", nil
+
+// В database.go измените:
+func GetUserState(telegramID int64) (UserState, bool) { // ← 2 возврата!
+	state, exists := userStates[telegramID]
+	return state, exists
 }
 
-func DeleteUserState(telegramID int64) error {
-	_, err := db.Exec(`DELETE FROM user_states WHERE telegram_id = $1`, telegramID)
-	return err
+func DeleteUserState(telegramID int64) {
+	delete(userStates, telegramID)
 }
 
 func RegisterUser(username, password string, telegramID int64) error {
@@ -100,4 +99,19 @@ func GetUserUsername(telegramID int64) (string, bool) {
 	).Scan(&username)
 
 	return username, err == nil
+}
+
+func GetUserTask(telegramID int64) string {
+	state, exists := userStates[telegramID]
+	if exists {
+		return state.Data
+	}
+	return ""
+}
+func GetUserStateString(telegramID int64) (string, string, bool) {
+	state, exists := userStates[telegramID]
+	if exists {
+		return state.State, state.Data, true
+	}
+	return "", "", false
 }

@@ -46,29 +46,45 @@ func handleStart(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 }
 
 func handleMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+	if update.Message == nil {
+		return
+	}
+
 	chatID := update.Message.Chat.ID
 	userID := update.Message.From.ID
 	text := update.Message.Text
-	state, data, _ := GetUserState(userID)
-	// ✅ ТЕСТ РЕГИСТРАЦИИ
-	if state == StateWaitingUsernameReg {
-		SaveUserState(userID, StateWaitingPasswordReg, text)
-		msg := tgbotapi.NewMessage(chatID, "🔐 Введите пароль:")
-		bot.Send(msg)
-		return
-	}
 
-	if state == StateWaitingPasswordReg {
-		username := data
-		RegisterUser(username, text, userID)
+	// 1️⃣ GIGA CHECK
+	stateObj, exists := GetUserState(userID)
+	if exists && stateObj.State == "waiting_answer" {
+		task := GetUserTask(userID)
+		feedback := CheckAnswer(task, text)
+
+		msg := tgbotapi.NewMessage(chatID, feedback)
+		msg.ParseMode = "Markdown"
+		bot.Send(msg)
 		DeleteUserState(userID)
-		msg := tgbotapi.NewMessage(chatID, fmt.Sprintf("✅ Регистрация: @%s", username))
-		bot.Send(msg)
 		return
 	}
 
-	// Всё остальное
-	msg := tgbotapi.NewMessage(chatID, "🔐 Регистрация\nНажмите 🆕 Зарегистрироваться")
+	// 2️⃣ РЕГИСТРАЦИЯ
+	stateStr, dataStr, ok := GetUserStateString(userID)
+	if ok {
+		switch stateStr {
+		case StateWaitingUsernameReg:
+			SaveUserState(userID, StateWaitingPasswordReg, text)
+			bot.Send(tgbotapi.NewMessage(chatID, "🔐 Введите пароль:"))
+			return
+		case StateWaitingPasswordReg:
+			RegisterUser(dataStr, text, userID)
+			DeleteUserState(userID)
+			bot.Send(tgbotapi.NewMessage(chatID, "✅ Зарегистрирован!"))
+			return
+		}
+	}
+
+	// 3️⃣ ОСНОВНОЕ МЕНЮ
+	msg := tgbotapi.NewMessage(chatID, "🔐 Регистрация\n🆕 Зарегистрироваться")
 	msg.ReplyMarkup = getMainKeyboard(false, "")
 	bot.Send(msg)
 }
@@ -255,15 +271,24 @@ func handleCallback(bot *tgbotapi.BotAPI, cb tgbotapi.CallbackQuery) {
 		}
 
 		classNum, _ := GetUserClass(userID)
-		username, _ := GetUserUsername(userID)
 
-		msgText := fmt.Sprintf("🎯 **%s - Тема %s** (%s класс)\n\n✅ Задание готово!\n\n@%s",
-			difficultyNames[difficulty], topicNum, classNum, username)
+		task := GenerateTask("Информатика", "Тема "+topicNum, difficulty, classNum)
+
+		SaveUserState(userID, "waiting_answer", task)
+
+		msgText := fmt.Sprintf("🎯 **%s - Тема %s** (%s класс)\n\n%s\n\n📝 Напишите ответ:",
+			difficultyNames[difficulty], topicNum, classNum, task)
 
 		msg := tgbotapi.NewMessage(chatID, msgText)
 		msg.ParseMode = "Markdown"
 
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("📝 Отправить ответ", "send_answer"),
+			),
+			tgbotapi.NewInlineKeyboardRow(
+				tgbotapi.NewInlineKeyboardButtonData("🔄 Новое задание", "difficulty_"+difficulty+"_"+topicNum),
+			),
 			tgbotapi.NewInlineKeyboardRow(
 				tgbotapi.NewInlineKeyboardButtonData("🔙 Главное меню", "main"),
 			),

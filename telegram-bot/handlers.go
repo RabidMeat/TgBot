@@ -3,10 +3,75 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
+
+var Subjects = map[string]map[int][]string{
+	"МАТЕМАТИКА": {
+		5: {"Натуральные числа: действия, свойства, делимость, степени", "Отрицательные числа", "Дроби", "Площадь фигур", "Умножение и деление"},
+		6: {"Обыкновенные дроби", "Проценты", "Уравнения", "Площадь и периметр"},
+		7: {"Линейные уравнения", "Системы уравнений, неравенства", "Квадратные уравнения", "Подобие фигур"},
+		8: {"Квадратные уравнения", "Степени", "Тригонометрия", "Координатная плоскость"},
+		9: {"Логарифмы", "Производные", "Интегралы", "Тригонометрические функции"},
+	},
+	"ИНФОРМАТИКА": {
+		5: {"Алгоритмы", "Переменные", "Циклы", "Условия"},
+		6: {"Массивы", "Функции", "Алгоритмы сортировки", "Файлы"},
+		7: {"Структуры данных", "Рекурсия", "Графы", "Базы данных"},
+		8: {"Объектно-ориентированное программирование", "Сети", "Базы данных SQL", "Алгоритмы поиска"},
+		9: {"Машинное обучение", "Криптография", "Параллельное программирование", "Большие данные"},
+	},
+	"РУССКИЙ ЯЗЫК": {
+		5: {"Правописание Н/НН", "Приставки", "Суффиксы", "Склонение"},
+		6: {"Причастия", "Действительные причастия", "Сложные предложения", "Прямая речь"},
+		7: {"Дієприкметники", "Условное наклонение", "Синтаксис", "Пунктуация"},
+		8: {"Стилистика", "Лексика", "Фразеологизмы", "Орфоэпия"},
+		9: {"Анализ текста", "Сочинение-рассуждение", "Литературные тропы", "Диалекты"},
+	},
+}
+
+func GetThemes(subject string, class int) []string {
+	log.Printf("GetThemes: subject='%s' class=%d", subject, class)
+
+	if themes, ok := Subjects[subject]; ok {
+		if t, ok := themes[class]; ok && len(t) > 0 {
+			log.Printf("✅ Найдены темы: %v", t)
+			return t
+		} else {
+			log.Printf("❌ Темы для класса %d не найдены", class)
+		}
+	} else {
+		log.Printf("❌ Предмет '%s' не найден", subject)
+	}
+	return []string{"Тема не найдена"}
+}
+
+func parseClass(classStr string) int {
+	log.Printf("parseClass input: '%s'", classStr)
+
+	if num, err := strconv.Atoi(classStr); err == nil {
+		log.Printf("parseClass result: %d (from Atoi)", num)
+		return num
+	}
+
+	switch classStr {
+	case "5 класс":
+		return 5
+	case "6 класс":
+		return 6
+	case "7 класс":
+		return 7
+	case "8 класс":
+		return 8
+	case "9 класс":
+		return 9
+	}
+	log.Printf("parseClass default: 5")
+	return 5
+}
 
 const (
 	StateWaitingUsernameReg = "waiting_username_reg" // ← ТОЧНО такая строка!
@@ -203,99 +268,100 @@ func handleCallback(bot *tgbotapi.BotAPI, cb tgbotapi.CallbackQuery) {
 	case "subject_math", "subject_info", "subject_rus":
 		subject := strings.TrimPrefix(data, "subject_")
 		subjectNames := map[string]string{
-			"math": "Математика",
-			"info": "Информатика",
-			"rus":  "Русский язык",
+			"math": "МАТЕМАТИКА",
+			"info": "ИНФОРМАТИКА",
+			"rus":  "РУССКИЙ ЯЗЫК",
 		}
 		subjectName := subjectNames[subject]
-
 		classNum, _ := GetUserClass(userID)
-		username, _ := GetUserUsername(userID)
 
-		msgText := fmt.Sprintf("📚 **%s** (%s класс)\n\n@%s, выберите тему урока:", subjectName, classNum, username)
-
+		msgText := fmt.Sprintf("📚 **%s** (%s класс)\n\nВыберите тему:", subjectName, classNum)
 		msg := tgbotapi.NewMessage(chatID, msgText)
 		msg.ParseMode = "Markdown"
 
-		// ✅ Кнопки тем уроков
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("📖 Тема 1", "topic_1"),
-				tgbotapi.NewInlineKeyboardButtonData("📖 Тема 2", "topic_2"),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("📖 Тема 3", "topic_3"),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🔙 Выбор предмета", "class_"+classNum),
-			),
-		)
+		// ✅ Парсим класс в int
+		classInt := parseClass(classNum)
+		log.Printf("DEBUG: subject='%s' classInt=%d", subjectName, classInt)
+		themes := GetThemes(subjectName, classInt)
+
+		keyboard := tgbotapi.NewInlineKeyboardMarkup()
+		for i, theme := range themes {
+			// ✅ Фиксированные короткие префиксы!
+			prefix := map[string]string{
+				"МАТЕМАТИКА":   "МА",
+				"ИНФОРМАТИКА":  "ИНО",
+				"РУССКИЙ ЯЗЫК": "РУС",
+			}[subjectName]
+
+			// ✅ Правильный формат: "МА_7_easy_THEME1"
+			callback := fmt.Sprintf("%s_%d_easy_THEME%d", prefix, classInt, i+1)
+			log.Printf("Создан callback: '%s'", callback)
+
+			keyboard.InlineKeyboard = append(keyboard.InlineKeyboard,
+				tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(theme, callback)))
+		}
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard,
+			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔙 Назад", "start_lessons")))
+
 		msg.ReplyMarkup = keyboard
 		bot.Send(msg)
-	case "topic_1", "topic_2", "topic_3":
-		topicNum := strings.TrimPrefix(data, "topic_")
-		classNum, _ := GetUserClass(userID)
 
-		msgText := fmt.Sprintf("📖 **Тема %s** (%s класс)\n\nВыберите сложность:",
-			topicNum, classNum)
+	default:
+		if strings.HasPrefix(data, "МА_") || strings.HasPrefix(data, "ИНО_") || strings.HasPrefix(data, "РУС_") {
+			parts := strings.Split(data, "_")
+			if len(parts) != 4 {
+				bot.Request(tgbotapi.NewCallback(cb.ID, "Ошибка формата"))
+				return
+			}
 
-		msg := tgbotapi.NewMessage(chatID, msgText)
-		msg.ParseMode = "Markdown"
-		// ✅ Кнопки сложности
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🟢 Легко", "difficulty_easy_"+topicNum),
-				tgbotapi.NewInlineKeyboardButtonData("🟡 Средне", "difficulty_medium_"+topicNum),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🔴 Сложно", "difficulty_hard_"+topicNum),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("📚 Выбор темы", "subject_math"), // вернитесь к предмету
-			),
-		)
-		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
-	case "difficulty_easy_1", "difficulty_easy_2", "difficulty_easy_3",
-		"difficulty_medium_1", "difficulty_medium_2", "difficulty_medium_3",
-		"difficulty_hard_1", "difficulty_hard_2", "difficulty_hard_3":
+			subjectCode := parts[0] // "МА", "ИНО", "РУС"
+			classStr := parts[1]    // "7"
+			difficulty := parts[2]  // "easy"
+			themeStr := parts[3]    // "THEME1"
 
-		parts := strings.Split(data, "_")
-		difficulty := parts[1] // easy, medium, hard
-		topicNum := parts[2]   // 1, 2, 3
+			classNum, err := strconv.Atoi(classStr)
+			if err != nil {
+				log.Printf("Ошибка парсинга класса: %v", err)
+				return
+			}
 
-		difficultyNames := map[string]string{
-			"easy":   "🟢 Легко",
-			"medium": "🟡 Средне",
-			"hard":   "🔴 Сложно",
+			subjectNames := map[string]string{
+				"МА":  "МАТЕМАТИКА",
+				"ИНО": "ИНФОРМАТИКА",
+				"РУС": "РУССКИЙ ЯЗЫК",
+			}
+			subject := subjectNames[subjectCode]
+
+			themeIdx, err := strconv.Atoi(themeStr[5:]) // "THEME1" → "1" → 1
+			if err != nil {
+				log.Printf("Ошибка парсинга темы: %v", err)
+				return
+			}
+
+			themes := GetThemes(subject, classNum)
+			if themeIdx-1 >= len(themes) || themeIdx-1 < 0 {
+				log.Printf("Неверный индекс темы: %d", themeIdx)
+				return
+			}
+			topic := themes[themeIdx-1]
+
+			task := GenerateTask(subject, topic, difficulty, fmt.Sprintf("%d класс", classNum))
+			SaveUserState(userID, "waiting_answer", task)
+
+			msgText := fmt.Sprintf("🎯 **%s** (%d класс)\n📖 **Тема:** %s\n\n%s\n\n📝 Напишите ответ:",
+				strings.ToUpper(difficulty), classNum, topic, task)
+
+			msg := tgbotapi.NewMessage(chatID, msgText)
+			msg.ParseMode = "Markdown"
+			msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("🔙 Главное меню", "main")),
+			)
+			bot.Send(msg)
+			return
 		}
 
-		classNum, _ := GetUserClass(userID)
-
-		task := GenerateTask("Информатика", "Тема "+topicNum, difficulty, classNum)
-
-		SaveUserState(userID, "waiting_answer", task)
-
-		msgText := fmt.Sprintf("🎯 **%s - Тема %s** (%s класс)\n\n%s\n\n📝 Напишите ответ:",
-			difficultyNames[difficulty], topicNum, classNum, task)
-
-		msg := tgbotapi.NewMessage(chatID, msgText)
-		msg.ParseMode = "Markdown"
-
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("📝 Отправить ответ", "send_answer"),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🔄 Новое задание", "difficulty_"+difficulty+"_"+topicNum),
-			),
-			tgbotapi.NewInlineKeyboardRow(
-				tgbotapi.NewInlineKeyboardButtonData("🔙 Главное меню", "main"),
-			),
-		)
-		msg.ReplyMarkup = keyboard
-		bot.Send(msg)
-
+		log.Printf("Неизвестный callback: %s", data)
+		bot.Request(tgbotapi.NewCallback(cb.ID, "Неизвестная команда"))
 	}
 
 }
@@ -376,4 +442,21 @@ func handleAccDelete(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	)
 	msg.ReplyMarkup = keyboard
 	bot.Send(msg)
+}
+func getThemeButtons(subject, classStr, difficulty string, classNum int) [][]tgbotapi.InlineKeyboardButton {
+	class := parseClass(classStr)
+	themes := GetThemes(subject, class)
+	buttons := [][]tgbotapi.InlineKeyboardButton{}
+
+	subjectPrefix := map[string]string{
+		"МАТЕМАТИКА":   "МА",
+		"ИНФОРМАТИКА":  "ИНО",
+		"РУССКИЙ ЯЗЫК": "РУС",
+	}[subject]
+
+	for i, theme := range themes {
+		callback := fmt.Sprintf("%s_%d_%s_THEME%d", subjectPrefix, class, difficulty[:3], i+1)
+		buttons = append(buttons, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(theme, callback)))
+	}
+	return buttons
 }

@@ -1,8 +1,4 @@
 github.com/evgensoft/gigachat v0.0.0-20250409142046-9633e2b5f6a4 h1:pGtixp7sUTi+EmLf3O8sFQPW3V8Bidbf5yyveBFlVc8=
 github.com/evgensoft/gigachat v0.0.0-20250409142046-9633e2b5f6a4/go.mod h1:q69ei2J/lzuISjt7acMBALmPQDvTBeR/WzHwrrXD3sE=
-github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1 h1:wG8n/XJQ07TmjbITcGiUaOtXxdrINDz1b0J1w0SzqDc=
-github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1/go.mod h1:A2S0CWkNylc2phvKXWBBdD3K0iGnDBGbzRpISP2zBl8=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
-github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=

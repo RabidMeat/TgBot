@@ -348,9 +348,7 @@ func handleCallback(bot *tgbotapi.BotAPI, cb tgbotapi.CallbackQuery) {
 			task := GenerateTask(subject, topic, difficulty, fmt.Sprintf("%d класс", classNum))
 			SaveUserState(userID, "waiting_answer", task)
 
-			msgText := fmt.Sprintf("🎯 **%s** (%d класс)\n📖 **Тема:** %s\n\n%s\n\n📝 Напишите ответ:",
-				strings.ToUpper(difficulty), classNum, topic, task)
-
+			msgText := fmt.Sprintf("🎯 Задание: (%d класс)\n📖 **Тема:** %s\n\n%s\n\n📝 Напишите ответ:", classNum, topic, task)
 			msg := tgbotapi.NewMessage(chatID, msgText)
 			msg.ParseMode = "Markdown"
 			msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
